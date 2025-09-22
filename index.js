@@ -22,5 +22,7 @@ io.on("connection", socket => {
         io.to(data.to).emit("candidate", { from: socket.id, candidate: data.candidate });
     });
 });
-
-httpServer.listen(3000, () => console.log("Signaling server started"));
+const PORT = process.env.PORT || 3000; // 🔑 Render подставит свой порт
+httpServer.listen(PORT, "0.0.0.0", () => {
+    console.log(`Signaling server started on ${PORT}`);
+});
