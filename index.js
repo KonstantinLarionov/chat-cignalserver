@@ -8,6 +8,10 @@ io.on("connection", socket => {
     socket.on("join", room => {
         socket.join(room);
         socket.to(room).emit("new-user", socket.id);
+
+        socket.on("disconnect", () => {
+            socket.to(room).emit("user-disconnected", socket.id);
+        });
     });
 
     socket.on("offer", (data) => {
@@ -21,6 +25,7 @@ io.on("connection", socket => {
     socket.on("candidate", (data) => {
         io.to(data.to).emit("candidate", { from: socket.id, candidate: data.candidate });
     });
+
 });
 const PORT = process.env.PORT || 3000; // 🔑 Render подставит свой порт
 httpServer.listen(PORT, "0.0.0.0", () => {
