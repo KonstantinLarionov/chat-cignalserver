@@ -1,15 +1,14 @@
 {
-  "name": "chat",
+  "name": "livekit-token-server",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
-    "socket.io": "^4.8.1"
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "livekit-server-sdk": "^1.7.0"
   }
 }
