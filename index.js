@@ -1,33 +1,53 @@
-﻿import { createServer } from "http";
-import { Server } from "socket.io";
+﻿import express from "express";
+import cors from "cors";
+import { AccessToken } from "livekit-server-sdk";
 
-const httpServer = createServer();
-const io = new Server(httpServer, { cors: { origin: "*" } });
+const app = express();
+app.use(cors());
 
-io.on("connection", socket => {
-    socket.on("join", room => {
-        socket.join(room);
-        socket.to(room).emit("new-user", socket.id);
+const PORT = process.env.PORT || 3000;
 
-        socket.on("disconnect", () => {
-            socket.to(room).emit("user-disconnected", socket.id);
-        });
+// 🔑 из env (Render / Railway / etc)
+const LIVEKIT_API_KEY = "APILP7AfEJCMceT";
+const LIVEKIT_API_SECRET = "YLnA5gu5pNSCUwANCEuQmJjGOYOvUXeRKSj2s7AIdVE";
+
+if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
+  throw new Error("LIVEKIT_API_KEY / LIVEKIT_API_SECRET not set");
+}
+
+/**
+ * GET /token?room=room123&user=user42
+ */
+app.get("/token", (req, res) => {
+  const { room, user } = req.query;
+
+  if (!room || !user) {
+    return res.status(400).json({
+      error: "room and user are required"
     });
+  }
 
-    socket.on("offer", (data) => {
-        io.to(data.to).emit("offer", { from: socket.id, sdp: data.sdp });
-    });
+  // 👉 ТУТ МОЖНО ВСТАВИТЬ ПРОВЕРКИ:
+  // if (!userHasAccess(user, room)) return 403;
 
-    socket.on("answer", (data) => {
-        io.to(data.to).emit("answer", { from: socket.id, sdp: data.sdp });
-    });
+  const token = new AccessToken(
+    LIVEKIT_API_KEY,
+    LIVEKIT_API_SECRET,
+    {
+      identity: String(user),
+    }
+  );
 
-    socket.on("candidate", (data) => {
-        io.to(data.to).emit("candidate", { from: socket.id, candidate: data.candidate });
-    });
+  token.addGrant({
+    roomJoin: true,
+    room: String(room),
+  });
 
+  res.json({
+    token: token.toJwt(),
+  });
 });
-const PORT = process.env.PORT || 3000; // 🔑 Render подставит свой порт
-httpServer.listen(PORT, "0.0.0.0", () => {
-    console.log(`Signaling server started on ${PORT}`);
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`LiveKit token server started on ${PORT}`);
 });
