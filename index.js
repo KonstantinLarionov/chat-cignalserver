@@ -10,12 +10,20 @@ const userSockets = new Map(); // userId -> socketId
 
 io.on("connection", socket => {
     console.log("User connected:", socket.id);
+    console.log(`Total connected users:`, io.engine.clientsCount);
 
     // Регистрация пользователя
     socket.on("register", (userId) => {
+        // Удаляем старую запись пользователя, если она есть
+        if (userSockets.has(userId)) {
+            const oldSocketId = userSockets.get(userId);
+            console.log(`User ${userId} was previously connected with socket ${oldSocketId}, replacing with ${socket.id}`);
+        }
+
         userSockets.set(userId, socket.id);
         socket.userId = userId;
         console.log(`User ${userId} registered with socket ${socket.id}`);
+        console.log(`Current registered users:`, Array.from(userSockets.entries()));
     });
 
     socket.on("join", room => {
@@ -23,10 +31,13 @@ io.on("connection", socket => {
         socket.to(room).emit("new-user", socket.id);
 
         socket.on("disconnect", () => {
+            console.log(`User disconnected: ${socket.id}, userId: ${socket.userId}`);
             socket.to(room).emit("user-disconnected", socket.id);
             // Очищаем информацию о пользователе
             if (socket.userId) {
                 userSockets.delete(socket.userId);
+                console.log(`Removed user ${socket.userId} from registered users`);
+                console.log(`Current registered users:`, Array.from(userSockets.entries()));
             }
             // Очищаем активные звонки этого пользователя
             cleanupUserCalls(socket.userId);
@@ -183,9 +194,12 @@ io.on("connection", socket => {
 
     // Очистка при отключении
     socket.on("disconnect", () => {
-        console.log("User disconnected:", socket.id);
+        console.log("User disconnected:", socket.id, "userId:", socket.userId);
+        console.log(`Total connected users:`, io.engine.clientsCount);
         if (socket.userId) {
             userSockets.delete(socket.userId);
+            console.log(`Removed user ${socket.userId} from registered users`);
+            console.log(`Current registered users:`, Array.from(userSockets.entries()));
             cleanupUserCalls(socket.userId);
         }
     });
