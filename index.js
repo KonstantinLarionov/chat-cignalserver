@@ -192,6 +192,27 @@ io.on("connection", socket => {
         io.to(data.to).emit("candidate", { from: socket.id, candidate: data.candidate });
     });
 
+    // Обработка сообщений чата через WebRTC DataChannel
+    socket.on("chat-message", (data) => {
+        const { to, message, timestamp } = data;
+        const fromUserId = socket.userId;
+
+        console.log(`[CHAT-MESSAGE] From: ${fromUserId}, To: ${to}, Message: ${message}`);
+
+        // Отправляем сообщение получателю
+        const toSocketId = userSockets.get(to);
+        if (toSocketId) {
+            io.to(toSocketId).emit("chat-message", {
+                from: fromUserId,
+                message: message,
+                timestamp: timestamp || Date.now()
+            });
+        } else {
+            console.log(`[CHAT-ERROR] User ${to} is offline`);
+            socket.emit("chat-error", { message: "User is offline" });
+        }
+    });
+
     // Очистка при отключении
     socket.on("disconnect", () => {
         console.log("User disconnected:", socket.id, "userId:", socket.userId);
